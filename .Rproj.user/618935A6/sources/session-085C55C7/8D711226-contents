@@ -86,7 +86,7 @@ ggplot(foo, aes(x=reorder(intitule, score), y=score ))+  geom_bar(stat="identity
 ## constitution du corpus
 
 
-```{r 01}
+```{r 03}
 ```
 
 
