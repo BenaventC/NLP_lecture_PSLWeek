@@ -1,0 +1,67 @@
+---
+title: "session1 : du corpus à l'annotation"
+author: "cb"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(udpipe)
+library(flextable)
+```
+
+## Acquisition de donnée
+
+
+## les méthodes
+Exemples
+
+* tweeter
+* ditp
+* api
+
+## nos données
+
+```{r 01}
+df <- read_csv("data_original_12062022_normalise_sentiment_transformers_lemna_words_adj.csv")%>%
+  select (id, date_ecrit, titre, description, ressenti, pays,intitule, canaux_typologie_1, transformer_sentiment_score, lem_words,lem_adj)
+
+ggplot(df,aes(x=transformer_sentiment_score))+geom_density()
+ggplot(df, aes(x=transformer_sentiment_score)) +
+  stat_ecdf(geom = "step")+xlim(0,1)
+
+```
+
+## constitution du corpus
+
+
+```{r 01}
+```
+
+
+## tokenisation
+
+```{r 01}
+```
+
+
+## annotation syntaxique
+
+
+```{r 01}
+```
+
+
+## analyse du sentiment
+
+
+```{r 01}
+```
+
+
+## collocation
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

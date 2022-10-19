@@ -1,0 +1,95 @@
+---
+title: "transformer"
+author: "cb"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Plusieurs solutions :
+
+* keras 
+* rbert
+* text : https://github.com/OscarKjell/text
+
+* 
+
+
+## 
+```{r text }
+# install.packages("devtools")
+#install.packages("text")
+library(text)
+
+# Install text required python packages in a conda environment (with defaults).
+textrpp_install()
+
+2# Initialize the installed conda environment.
+# save_profile = TRUE saves the settings so that you don't have to run textrpp_initialize() after restarting R. 
+textrpp_initialize(textrpp_condaenv,save_profile = TRUE) #
+
+wordembeddings <- textEmbed(Language_based_assessment_data_8, 
+                            model = 'bert-base-uncased')
+```
+
+
+## R trasforEmotion
+
+
+```{r cars}
+library(transforEmotion)
+
+
+text=c("Je n'aime pas la politique mais je suis prêt à en accepter les responsabilité",
+       "la vie est question de pouvoir même on on ne l'aime pas")
+# Directly from huggingface: typeform/distilbert-base-uncased-mnli
+scores<-transformer_scores(
+ text = text,
+ classes = c( "politique", "pouvoir", "société" ),
+)
+```
+
+## rbert
+
+ca marche pas bcps....
+
+
+```{r rbert}
+# install.packages("devtools")
+devtools::install_github(
+  "jonathanbratt/RBERT", 
+  build_vignettes = TRUE
+)
+devtools::install_github("rstudio/reticulate")
+library(reticulate)
+tensorflow::install_tensorflow(version = "1.13.1")
+
+library(RBERT)
+library(dplyr)
+# Download pre-trained BERT model. This will go to an appropriate cache
+# directory by default.
+BERT_PRETRAINED_DIR <- RBERT::download_BERT_checkpoint(
+  model = "bert_base_uncased"
+)
+text_to_process <- c("Impulse is equal to the change in momentum.",
+                     "Changing momentum requires an impulse.",
+                     "An impulse is like a push.",
+                     "Impulse is force times time.")
+# Or make two-segment examples:
+text_to_process2 <- list(c("Impulse is equal to the change in momentum.",
+                           "Changing momentum requires an impulse."),
+                         c("An impulse is like a push.",
+                           "Impulse is force times time."))
+BERT_feats <- extract_features(
+  examples = text_to_process,
+  ckpt_dir = BERT_PRETRAINED_DIR,
+  layer_indexes = 1:12
+)
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

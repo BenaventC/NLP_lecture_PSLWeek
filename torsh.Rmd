@@ -1,0 +1,176 @@
+---
+title: "torch"
+author: "cb"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## packages
+
+On charge les package nécessaires et on selectionne les posts qui ne sont pas relatifs à Réseau consulaire qui sont abondants. On obtient 11921 obs.
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse) #la boite à outil
+library(torch) #nécessaire pour le tiopic
+library(topicmodels.etm) #le topic original
+library(doc2vec) #vectoriser les paragraphe
+library(word2vec) #un classiqe
+library(textplot) # je sais pas pourquoi
+library(uwot) #projection spatiale à la mode
+library(ggrepel) #pour des plot xy bien labellisés
+library(ggalt) #pour autre chose, je sais pas
+
+library(udpipe) # package à étudier de plus près
+
+df <- read_csv("data_original_12062022_normalise_sentiment_transformers_lemna_words_adj.csv")%>%
+  select (id, date_ecrit, titre, description, ressenti, pays,intitule, canaux_typologie_1, transformer_sentiment_score, lem_words,lem_adj)
+table(df$intitule)
+foo<-df %>%
+  filter(intitule != "Réseau consulaire") #on exclue la masse des consulats
+
+#saveRDS(foo, "exp_nonconsulat.rds") #on sauve pour un autre usage
+
+
+```
+
+## vectorisation
+
+elle se fait avec word2vec
+
+200 vecteur pour être large. La question du nombre optimum n'a pas encore de réponse claire en dépit d'ébauches de méthodes. 
+
+être sélectif dans les mots : au moins 10 occurrences, c'est une chance de 1 sur 1000 textes, le nombre total est d'un million. 
+
+
+```{r 01}
+
+x      <- data.frame(doc_id           = foo$id, 
+                     text             = foo$description, 
+                     stringsAsFactors = FALSE)
+#on garde les majuscule pour identifier les entités nommées
+
+x$text <- txt_clean_word2vec(x$text, tolower=FALSE)
+
+t1<-Sys.time()
+w2v <- word2vec(x = x$text, dim = 200, type = "skip-gram", iter = 50, min_count = 8, threads = 4)
+t<-Sys.time()-t1
+t
+embeddings <- as.matrix(w2v)
+
+# test sur le mot  "impot"
+predict(w2v, newdata = c("CAF"), type = "nearest", top_n = 12)
+
+#x<-word2vec_similarity("CAF", "passeport")
+
+
+```
+
+dans cette section on prépare le topic model en fabricant a) un dtm dont on garde les 75% premiers en score tf_idf.
+
+donc 1,2 millions de mots générés par 11873 textes à partir d'un vocabulaire de 30000 mots 
+
+```{r 02}
+
+
+dtm   <- strsplit.data.frame(x, group = "doc_id", term = "text", split = " ")
+dim(dtm)
+dtm   <- document_term_frequencies(dtm)
+dim(dtm)
+dtm   <- document_term_matrix(dtm)
+dim(dtm)
+
+dtm   <- dtm_remove_tfidf(dtm, prob=0.55)
+dim(dtm)
+
+vocab        <- intersect(rownames(embeddings), colnames(dtm))
+embeddings   <- dtm_conform(embeddings, rows = vocab)
+dtm          <- dtm_conform(dtm,     columns = vocab)
+dim(dtm)
+dim(embeddings)
+
+```
+
+le modèle
+
+```{r 03}
+
+# on injecte le dtm dans le topic model 
+#k : le nombre de topic
+#dim : une dim ? 800 par défaut
+
+set.seed(1234)
+
+#pour la reproducibility
+torch_manual_seed(4321)
+#spécifier le modèle
+model     <- ETM(k = 20, dim = 200, embeddings = embeddings)
+
+#spécifier l'optimisateur
+optimizer <- optim_adam(params = model$parameters, lr = 0.001, weight_decay = 0.000002)
+#définir la fonction d'érreur
+loss      <- model$fit(data = dtm, optimizer = optimizer, epoch = 25, batch_size = 1000)
+
+#pour observer la convergence
+
+plot(model, type = "loss")
+plot(model, type = "topics")
+
+terminology  <- predict(model, type = "terms", top_n = 15)
+topic<-bind_rows(terminology, .id = "id")
+library(ggwordcloud)
+ggplot(topic, aes(label = term, size = beta)) +
+  geom_text_wordcloud_area() + facet_wrap(vars(id))+
+  scale_size_area(max_size = 7) +
+  theme_minimal()
+
+
+```
+
+## représenter les résultats
+
+on utilise la méthode Umap avec uwot qui semble surpasser la méthode tsne. 
+
+Quelques référérences :
+
+d'abord juste les topics
+
+```{r 03}
+
+manifolded <- summary(model, type = "umap", n_components = 2, metric = "cosine", n_neighbors = 10, 
+                      fast_sgd = FALSE, n_threads = 2, verbose = TRUE)
+
+space <- subset(manifolded$embed_2d, type %in% "centers")
+#textplot_embedding_2d(space)
+plt <- ggplot(space, aes(x = x, y = y, label = term, color = term, size =1)) + 
+    geom_text_repel(show.legend = FALSE, max.overlaps	=50, size=3) + 
+#    theme_void() + 
+    labs(title = "ETM topics", subtitle = "embedded in 2D using UMAP")+ 
+  geom_point(show.legend = FALSE, size=2)+theme_bw()
+plt
+
+```
+On peut aiser projeter les termes les plus fréquents. dans l'exemple suivant on explore l'ilot cluter 1, 5, 12. Ils sont tous relatifs à la question sanitaire du codid mais avec des différences : 
+
+```{r 03}
+
+space      <- subset(manifolded$embed_2d, cluster %in% c(12) & rank <= 10)
+textplot_embedding_2d(space, title = "ETM topics", subtitle = "embedded in 2D using UMAP", 
+                      encircle = FALSE, points = TRUE)
+space$topic <- factor(space$cluster)
+
+plt <- ggplot(space, aes(x = x, y = y, label = term, color = topic, size =3, pch = factor(type, levels = c("centers", "words")))) + 
+    geom_text_repel(show.legend = FALSE, max.overlaps	=50, size=2.5) + 
+#    theme_void() + 
+    labs(title = "ETM topics", subtitle = "embedded in 2D using UMAP")
+plt + geom_point(show.legend = FALSE)+theme_bw()
+ggsave("x.jpeg",plot=last_plot(), width = 28, height = 20, units = "cm")
+
+## encircle if topics are non-overlapping can provide nice visualisations
+plt + geom_encircle(aes(group = topic, fill = topic), alpha = 0.4, show.legend = FALSE) + geom_point(show.legend = FALSE)
+
+ggsave("y.jpeg",plot=last_plot(), width = 28, height = 20, units = "cm")
+
+```
+

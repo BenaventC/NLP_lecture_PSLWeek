@@ -1,0 +1,267 @@
+---
+title: "script_file"
+author: "cb"
+date: "12/04/2022"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r 0101, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(udpipe)
+library(flextable)
+```
+
+## Lecture fichier
+
+selection du consulaire
+
+```{r 00}
+
+library(readr)
+df <- read_csv("data_original_12062022_normalise_sentiment_transformers_lemna_words_adj.csv")%>%
+  select (id, date_ecrit, titre, description, ressenti, pays,intitule, canaux_typologie_1, transformer_sentiment_score, lem_words,lem_adj)
+
+foo<-df%>%
+  filter(intitule=="Réseau consulaire")
+
+saveRDS(foo, "exp_consulat.rds")
+
+typo<-as.data.frame(str_split_fixed(df$canaux_typologie_1, ",", 10))%>%
+  mutate(across(where(is.character), str_trim)) %>% 
+  cbind(df$id) %>%
+  rename(id=11) %>%
+           pivot_longer(-id, names_to = "valeur", values_to="variable") %>%
+  filter(variable!="") %>% 
+  group_by(id, variable) %>% 
+  summarise(valeur=1) %>%
+  pivot_wider(id,names_from="variable", values_from="valeur")%>%
+  replace(is.na(.), 0)
+
+n_c<-nrow(typo)
+
+foo<-typo %>% 
+  pivot_longer(-id, names_to = "variable", values_to="value") %>% 
+  group_by(variable)%>%
+  summarise(Penetration=mean(value)) 
+
+
+ggplot(foo, aes(x=reorder(variable, Penetration),y=Penetration))+
+  geom_bar(stat="identity",fill="firebrick")+
+  coord_flip()
+
+#typo
+foo<-typo%>%select(-id,-12)
+
+#service
+table(df$intitule)
+#service
+t<-as.data.frame(table(df$intitule)) %>%filter(Freq>50)
+
+ggplot(t, aes(x=reorder(Var1, Freq),y=Freq))+
+  geom_bar(stat="identity",fill="firebrick")+
+  coord_flip()
+foo<-df%>%mutate(n=1)%>%group_by(intitule)%>%summarise(score=mean(transformer_sentiment_score,na.rm=TRUE),n=sum(n)) %>% filter(n>50)
+
+ggplot(foo, aes(x=reorder(intitule, n), y=score ))+  geom_bar(stat="identity",fill="firebrick")+
+  coord_flip()
+
+
+
+```
+## sentiment
+
+```{r 01}
+
+
+ggplot(df,aes(x=ressenti,y=transformer_sentiment_score))+geom_violin()
+
+foo<-typo %>% left_join(df) %>%
+  select(id,transformer_sentiment_score,2:11) %>%
+             pivot_longer(-c(id, transformer_sentiment_score), names_to = "valeur", values_to="variable")%>%
+  group_by(valeur,variable)%>%summarise(score=mean(transformer_sentiment_score, na.rm=TRUE))
+
+ggplot(foo,aes(x=valeur,y=score, group=variable))+geom_line(stat="identity",aes(color=as.factor(variable)))+coord_flip()
+
+
+```
+
+## Annotation
+
+https://bnosac.github.io/udpipe/docs/doc3.html
+
+
+
+```{r 0201, echo=FALSE}
+fr <- udpipe_download_model(language = "french")
+udmodel_french <- udpipe_load_model(file = "french-gsd-ud-2.5-191206.udpipe")
+
+t1<-Sys.time()
+UD <- udpipe_annotate(udmodel_french, x=df$texte)
+t2<-Sys.time()
+t<-t2-t1
+print(t)
+
+x <- as.data.frame(UD)
+foo<-x %>% 
+  select(doc_id,paragraph_id, sentence_id, token_id,token,lemma,head_token_id, upos,feats)
+flextable(head(foo))
+```
+
+
+## Vectorisation
+
+### version 1
+
+bern Schmidt
+
+```{r 0301, echo=FALSE}
+
+
+
+#on filtre adverbes adjectifs verb et non communs
+updated_vocab <- foo %>%  filter(upos %in% c('ADV','ADJ','VERB', 'NOUN'))
+
+#on crée une chaine de caractère qui concatène les lemmes filtrés
+all_tweets <- paste(updated_vocab['lemma'], sep= " ")
+
+#on génère le fichier de ces tweets "purifiés"
+write.table(all_tweets, file="tweets.txt")
+
+
+install.packages("remotes")
+remotes::install_github("bmschmidt/wordVectors")
+library(wordVectors)
+
+#Nettoyage des tweets et identification des n-grammes en vue d'entraîner le modèle
+prep_word2vec(origin="./data/tweets.txt",destination="./data/trump_vec.txt",lowercase=T,bundle_ngrams=3)
+
+#Création et entraînement du modèle vectoriel
+
+model = train_word2vec("./data/trump_vec.txt",
+                       "./data/trump.bin",
+                       vectors=200,threads=3,
+                       window=5,
+                       iter=10,negative_samples=0,
+                       force=TRUE, 
+                       min_count=30)
+
+
+```
+
+### version 2
+
+
+voir https://cran.r-project.org/web/packages/word2vec/readme/README.html
+
+```{r 0301, echo=FALSE}
+
+
+library(word2vec)
+library(Rtsne)
+help(package = "word2vec")
+
+
+set.seed(123456789)
+model <- word2vec(x = df$texte, type = "cbow", dim = 100, iter = 20)
+embedding <- as.matrix(model)
+
+
+embedding2 <- predict(model, c("service", "public"), type = "embedding")
+lookslike <- predict(model, c("service", "public"), type = "nearest", top_n = 10)
+lookslike
+```
+
+
+
+### réseau de kohonen 
+
+
+The algorithm to produce a SOM from a sample data set can be summarised as follows:
+
+Select the size and type of the map. The shape can be hexagonal or square, depending on the shape of the nodes your require. Typically, hexagonal grids are preferred since each node then has 6 immediate neighbours.
+Initialise all node weight vectors randomly.
+Choose a random data point from training data and present it to the SOM.
+Find the “Best Matching Unit” (BMU) in the map – the most similar node. Similarity is calculated using the Euclidean distance formula.
+Determine the nodes within the “neighbourhood” of the BMU.
+– The size of the neighbourhood decreases with each iteration.
+Adjust weights of nodes in the BMU neighbourhood towards the chosen datapoint.
+– The learning rate decreases with each iteration.
+– The magnitude of the adjustment is proportional to the proximity of the node to the BMU.
+Repeat Steps 2-5 for N iterations / convergence.
+
+
+voir https://eric.univ-lyon2.fr/~ricco/tanagra/fichiers/en_Tanagra_Kohonen_SOM_R.pdf
+
+https://www.shanelynn.ie/self-organising-maps-for-customer-segmentation-using-r/
+
+https://www.shanelynn.ie/self-organising-maps-for-customer-segmentation-using-r/
+
+```{r 0302, echo=FALSE}
+#kohonen library
+library(kohonen)
+#SOM
+set.seed(100)
+carte <- som(embedding,grid=somgrid(30,30,"hexagonal"),  rlen = 1000)
+print(summary(carte))
+#print(carte$grid)
+plot(carte, type="changes")
+
+ customisedcolors <- function(n, alpha = 1) {
+  heat.colors(n, alpha=alpha)[n:1]
+ }
+ 
+plot(carte,type="count",mains="Node count", palette.name = customisedcolors)
+plot(carte, type='codes',palette.name = rainbow)
+plot(carte, type="dist.neighbours", main = "SOM neighbour distances",palette.name = gray.colors)
+
+# Visualising cluster results
+## use hierarchical clustering to cluster the codebook vectors
+som_cluster <- cutree(hclust(dist(carte$codes)), 30)
+# plot these results:
+plot(som_model, type="mapping", bgcol = pretty_palette[som_cluster], main = "Clusters") 
+add.cluster.boundaries(som_model, som_cluster)
+
+```
+
+### typologie
+
+
+```{r 0303, echo=FALSE}
+
+library(fastcluster) #pour aller plus vite
+distance<-dist(embedding)
+arbre <- hclust(distance, method = "ward.D2")
+plot(arbre,  xlab = "", ylab = "", sub = "", axes = FALSE, hang = -1)
+rect.hclust(arbre, 25, border = "green3")
+group<- cutree(arbre, k = 25)
+
+
+```
+
+```{r 0304, echo=FALSE}
+
+tsne_out <- Rtsne(embedding,perplexity = 30, dim=3) # Run TSNE
+tsne_out2<-as.data.frame(tsne_out$Y)
+word<-rownames(embedding)
+
+tsne_out3<-cbind(tsne_out2, word,group) 
+
+library(ggrepel)
+tsne_out3%>%
+  ggplot(aes(x=V1, y=V2, label=word))+
+  geom_point(aes(color=as.factor(group)))
+             
+             +
+  geom_text_repel(aes(label=word),  size=1)
+  
+
+
+ggsave(filename="vector.jpeg", plot=last_plot(), width = 27, height = 18, units = "cm")
+
+
+```
+
