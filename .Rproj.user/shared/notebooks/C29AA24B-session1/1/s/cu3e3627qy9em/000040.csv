@@ -1,0 +1,8 @@
+"0",""
+"0",""
+"0","dfmat2 <- dfm(corpus_subset(corpus, intitule == ""CAF""),"
+"0","              remove = stopwords(""french""), remove_punct = TRUE) %>%"
+"0","   dfm_trim(min_termfreq = 3)"
+"0",""
+"0","textplot_wordcloud(dfmat2, max_words = 150)"
+"0",""

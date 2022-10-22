@@ -1,0 +1,28 @@
+{
+    "id": "86C565BF",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1666437062359.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "id": "506b3671507040ee8d5bc00b7b1d8aeb",
+        "name": "foo3",
+        "title": "foo3",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1962058913576,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1666437062359,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -1,0 +1,41 @@
+---
+title: "session1 : réseaux sémantiques"
+author: "cb,jcrm,bc,oc"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+##tools
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(udpipe)
+library(flextable)
+library(cowplot)
+library(quanteda)
+library(quanteda.textmodels)
+library(quanteda.textstats)
+library(quanteda.textplots)
+library(syuzhet)             #analyse du sentimeent
+
+t1=Sys.time()
+
+```
+
+## matrice de cooccurence
+
+## matrice tfidf
+
+
+```{r 01}
+```
+
+## Des méthodes de projection dans un espace réduit
+
+## transformer une matrice de distance en un réseaux de relation
+
+## relprésenter ces réseaux
+
+##  la question de leur dynamique
+

@@ -1,0 +1,8 @@
+"0",""
+"0","foo<-typo %>% left_join(df) %>%"
+"0","  select(id,transformer_sentiment_score,2:11) %>%"
+"0","             pivot_longer(-c(id, transformer_sentiment_score), names_to = ""valeur"", values_to=""variable"")%>%"
+"0","  group_by(valeur,variable)%>%summarise(score=mean(transformer_sentiment_score, na.rm=TRUE))"
+"2","Joining, by = ""id"""
+"2","`summarise()` has grouped output by 'valeur'. You can override using the `.groups` argument."
+"0","ggplot(foo,aes(x=valeur,y=score, group=variable))+geom_line(stat=""identity"",aes(color=as.factor(variable)))+coord_flip()"
