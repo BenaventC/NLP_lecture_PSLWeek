@@ -1,14 +1,19 @@
 ---
-title: "session1 : réseaux sémantiques"
+title: "Session2 : Semantic spaces"
 author: "cb,jcrm,bc,oc"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document :
+    toc: true
+    toc_float: true
+    toc_depth: 3
 ---
 
-##tools
+# Tools
 
-```{r setup, include=FALSE}
+```{r setup, include=TRUE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)
+#from session 1
 library(tidyverse)
 library(udpipe)
 library(flextable)
@@ -17,25 +22,165 @@ library(quanteda)
 library(quanteda.textmodels)
 library(quanteda.textstats)
 library(quanteda.textplots)
-library(syuzhet)             #analyse du sentimeent
+library(syuzhet)  #analyse du sentimeent
+
+# new for session 2
+library(FactoMineR)
+library(factoextra)
+library(igraph)
+library(ggwordcloud)
+library(Rtsne)
+
+theme_set(theme_minimal())
 
 t1=Sys.time()
 
 ```
 
-## matrice de cooccurence
+# Dfm & Co-occurence matrix
 
-## matrice tfidf
+We start from the annotation task. First objectif is to reconstitute tex with lemma. Because we are first interesting par the content, we will work mainly with noun, proper name and verbs. Things, people and action. We will add also adjectives as there are more attributives than qualifying. ( fact versus jugement technics)
+
+
+```{r 00}
+
+#read the file and select tokens
+df<-readRDS("UD.rds")%>%
+  select(doc_id, lemma, upos)%>%
+  filter(upos=="NOUN"|upos=="PROPN"|upos=="VERB"|upos=="ADJ")%>%
+  group_by(doc_id)%>%
+  summarise(text=paste(lemma, collapse=" "))
+
+head(df,5)
+
+#ajouter les variables doc_var
+
+```
+
+come back to quanteda, making a dfm and a cfm.
+
+```{r 01}
+corpus <- corpus(df$text) # docvars(corpus, field = "doc_id")
+summary(corpus)
+
+dfm<- corpus %>%
+  tokens() %>% tokens_remove(stopwords("french"))%>%
+  dfm()
+
+dfm<- dfm %>%
+    dfm_trim(min_termfreq = 100, verbose = FALSE) 
+
+set.seed(100)
+textplot_wordcloud(dfm)
+
+dfm_df<- as.data.frame(dfm) 
+
+dim(dfm_df)
+head(dfm,5)
+
+
+dfm_count<-dfm_df %>%
+  pivot_longer(-doc_id,names_to = "Word", values_to = "n")%>%
+  group_by(Word)%>% mutate(m=1)%>%
+  summarise(Doc_frequency=sum(m),  #une erreur à vérifier
+            Term_frequency=sum(n))
+
+```
+
+# Map the tokens
+
+Issue with workcloud is that position is meaningless, just random and paving..
+
+
+Goal : represent similarity beetwen words based on their coocurrence.
+
+## PCA approach
+
+come back to PCA
+
+
+```{r 02}
+library(FactoMineR)
+
+foo<- dfm_df %>%
+  column_to_rownames(var="doc_id")
+
+#PCA
+
+res.pca <- PCA(foo[,c(1:1030)], ncp=5,graph=FALSE)
+
+#label selection factor
+a=.3
+
+
+foo1<-as.data.frame(res.pca$var$coord) %>% 
+  rownames_to_column(var="label") %>%
+  filter(Dim.1>a | Dim.1< -a | Dim.2>a | Dim.2< - a)
+
+ggplot(foo1, aes(x=Dim.1, y=Dim.2))+
+  geom_text(aes(label=label),size=2)
+
+foo1<-as.data.frame(res.pca$var$coord) %>% 
+  rownames_to_column(var="label") %>%
+  filter(Dim.3> a | Dim.3< -a | Dim.4> a | Dim.4< -a)
+
+ggplot(foo1, aes(x=Dim.1, y=Dim.2))+
+  geom_text(aes(label=label),size=2)
+
+#typo with kmnes
+
+foo1<-as.data.frame(res.pca$var$coord)
+
+resKM <- kmeans(foo1, 12, nstart = 10, trace=1)
+foo<-as.data.frame(resKM$cluster) %>%
+  rename(cluster=1)%>% 
+  rownames_to_column(var="Word") %>%left_join(dfm_count)
+foo$cluster<-as.factor(foo$cluster)
+
+
+set.seed(42)
+library(ggwordcloud)
+ggplot(foo, aes(label = Word, size=Term_frequency, group = cluster)) +
+  geom_text_wordcloud() +
+  scale_size_area(max_size = 8) +
+  facet_wrap(vars(cluster), ncol=4)+theme_minimal()
+
+```
+
+## Tsne Approach
+
+Alternative : UMAP
+
+tsne to project large numbre of object in a small dinesion space as tradition MDS, but with a principle of density, that dilate space where point are dense, and contracte it when is not. 
+
+```{r 01}
+```
+
+
+
+## Semantic Networks
 
 
 ```{r 01}
 ```
 
-## Des méthodes de projection dans un espace réduit
 
-## transformer une matrice de distance en un réseaux de relation
 
-## relprésenter ces réseaux
+# Tfidf matrix
 
-##  la question de leur dynamique
 
+```{r 01}
+```
+
+# More about networks
+
+
+# Compare groups
+
+# Notes
+
+```{r 20}
+t2=Sys.time()
+t<- t2-t1
+print(t)
+```

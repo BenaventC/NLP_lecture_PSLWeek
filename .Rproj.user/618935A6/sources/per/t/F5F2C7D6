@@ -1,0 +1,28 @@
+{
+    "id": "F5F2C7D6",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1666518824964.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "id": "44ed450332064e2080787ce0ca09ece7",
+        "name": "res.mca",
+        "title": "res.mca",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 733013814306484786,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1666518824964,
+    "read_only": false,
+    "read_only_alternatives": []
+}
