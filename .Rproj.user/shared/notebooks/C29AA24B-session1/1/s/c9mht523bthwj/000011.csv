@@ -1,0 +1,8 @@
+"0",""
+"0","#with cleaning"
+"0",""
+"0","dfmat1 <- dfm(foo,"
+"0","              remove = stopwords(""french""), remove_punct = TRUE) %>%"
+"0","   dfm_trim(min_termfreq = 3)"
+"0",""
+"0","textplot_wordcloud(dfmat1, max_words = 50)"

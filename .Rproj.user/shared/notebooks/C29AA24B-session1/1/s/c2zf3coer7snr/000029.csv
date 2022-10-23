@@ -1,7 +1,0 @@
-"0","#read the file and sample to reduce computation ( look at the end)"
-"0","df <- read_csv(""data_original_12062022_normalise_sentiment_transformers_lemna_words_adj.csv"")%>%"
-"0","  select (id, date_ecrit, titre, description, ressenti, pays,intitule, canaux_typologie_1, transformer_sentiment_score) "
-"0",""
-"0","#%>% sample_n(1000)"
-"0",""
-"0","head(df, 5)"

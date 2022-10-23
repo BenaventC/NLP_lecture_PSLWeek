@@ -1,8 +1,0 @@
-"0","foo<-df%>%mutate(n=1)%>%"
-"0","  group_by(intitule)%>%"
-"0","  summarise(score=mean(transformer_sentiment_score,na.rm=TRUE),n=sum(n)) %>% "
-"0","  filter(n>50)"
-"0",""
-"0","ggplot(foo, aes(x=reorder(intitule, n), y=score ))+  geom_bar(stat=""identity"",fill=""firebrick"")+"
-"0","  coord_flip()"
-"0",""

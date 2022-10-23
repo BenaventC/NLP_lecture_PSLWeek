@@ -1,5 +1,5 @@
 ---
-title: "session1 : du corpus à l'annotation"
+title: "Session1 : text metric and word annotations"
 author: "cb,jcrm,bc,oc"
 date: "`r Sys.Date()`"
 output: 
@@ -9,32 +9,38 @@ output:
     toc_depth: 3
 ---
 
-
 # Tools
 
 Mainly [`Quanteda`](http://quanteda.io/) and [`udpipe`](https://cran.r-project.org/web/packages/udpipe/vignettes/udpipe-annotation.html)
 
-```{r setup, include=FALSE,ech=TRUE message=FALSE, warning=FALSE}
+```{r setup, include=TRUE,echo=TRUE,message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)
-library(tidyverse)
-library(udpipe)
-library(flextable)
-library(cowplot)
-library(quanteda) 
+library(tidyverse) # a swiss kniffe
+library(udpipe) # syntaxis and lexicl annotations
+library(flextable) #for table rendering
+library(ggwordcloud) #for ploting
+library(cowplot) #for ploting
+library(quanteda) #a complete text mining package
 library(quanteda.textmodels)
 library(quanteda.textstats)
 library(quanteda.textplots)
 library("quanteda.dictionaries")
-library(syuzhet)             #analyse du sentimeent
-library(lubridate)
+library(syuzhet)  #analyse du sentimeent
+library(lubridate) #date processing
+library(udpipe) #annotations
+library(igraph) #représentation de réseaux
+
+
 theme_set(theme_minimal())
+
 t1=Sys.time()
 ```
-
 
 # Our Data
 
 User Experience projet from DITP (Services public+)[ https://www.modernisation.gouv.fr/actualites/services-publics-plus-de-15-000-experiences-dusagers-partagees-sur-la-plateforme)]
+
+Comment are relative to a life experience (renew a passeport) at a certain time, with a specific administration in a certain place.  
 
 ## Sentiment distribution (transformer method)
 
@@ -402,30 +408,134 @@ textplot_wordcloud(dfmat2, max_words = 150)
 
 looking for expressions
 
+
+```{r 16}
+
+#on sélectionne les mots commençant par une majuscule
+toks_cap <- tokens_select(foo, 
+                               pattern = "^[A-Z]",
+                               valuetype = "regex",
+                               case_insensitive = FALSE, 
+                               padding = TRUE)
+
+#on cherche les collocations
+tstat_col_cap <- textstat_collocations(toks_cap, min_count = 3, tolower = FALSE)
+#head(as.data.frame(tstat_col_cap),15)
+
+
+toks_comp <- tokens_compound(foo, pattern = tstat_col_cap[tstat_col_cap$lamba > 10], 
+                             case_insensitive = FALSE)
+
+head(toks_comp)
+
+```
+
 ## Lemmas and POS
 
-```{r 24}
+```{r 17, eval=FALSE}
+
+library(udpipe)
+fr <- udpipe_download_model(language = "french")
+udmodel_french <- udpipe_load_model(file = "french-gsd-ud-2.5-191206.udpipe")
+
+
+UD <- udpipe_annotate(udmodel_french, x=df$description)
+UD <- as.data.frame(UD)
+saveRDS(UD, "UD.rds")
+```
+
+Let examine the content : lemma per POS.
+
+```{r 18}
+UD<-readRDS("UD.rds")
+foo<-UD%>%
+  group_by(upos)%>%
+  summarise(n=n())%>%
+  ggplot(aes(x=reorder(upos,n), y=n))+
+  geom_bar(stat = "identity")+coord_flip()
+foo
+foo<-UD %>%
+  filter(upos=="NOUN") %>%
+  group_by(lemma)%>%
+  summarise(n=n()) %>%
+  filter(n>1000)%>%
+  ggplot(aes(x=reorder(lemma,n), y=n))+
+  geom_point(size=1.5, fill="blue3")+coord_flip()
+
+foo
+
+foo<-UD %>%
+  filter(upos=="ADJ" |upos=="VERB") %>%
+  group_by(lemma, upos)%>%
+  summarise(n=n()) %>%
+  filter(n>300)%>%
+  ggplot(aes(label = lemma, size = log(n), group=upos)) +
+  geom_text_wordcloud(aes(color=upos)) +
+  theme_minimal()+
+  facet_wrap(vars(upos))
+
+foo
 ```
 
 
 ## syntaxic dependance
 
+A few `dplyr gymnastics', and thats already the session 2 . 
+
+[We follow](https://rpubs.com/pjmurphy/317838) for idea of code.
+
+for dataviz `igraph` is the tool.
+
+
+```{r 19, fig.width=12}
+foo1<-UD %>%
+  mutate(id=paste0(doc_id,paragraph_id,sentence_id,token_id))%>%
+  select(id, lemma)%>%
+  rename(noun=lemma)
+
+foo<-UD %>%
+  filter(dep_rel=="amod")%>%
+  mutate(id=paste0(doc_id,paragraph_id,sentence_id,head_token_id))%>%
+  left_join(foo1)%>%
+  select(id, lemma, noun)%>%
+  rename(adj=lemma)%>%
+  group_by(noun,adj)%>%
+  summarise(n=n())%>%
+  filter(n>50)
+#A  Correspondance Analysis solution?
+#igraph approach belong to the netx lesson 
+library(igraph)
+g <- graph.data.frame(foo, directed=FALSE)
+V(g)$type <- bipartite_mapping(g)$type  ## Add the "type" attribute
+V(g)$label.color <- ifelse(V(g)$type, "salmon4", "blue2")
+V(g)$fill <- ifelse(V(g)$type, "salmon4", "blue2")
+V(g)$shape <-ifelse(V(g)$type, "circle", "square")
+plot(g,vertex.label.cex = 0.8)
+```
 
 # Notes
 
-Beware to computing time! Best to sample for testing. ( See at the beginning)
+Beware to computing time! Best to sample for testing. (come back to the beginning)
 
-```{r 025}
+```{r 20}
 t2=Sys.time()
 t<- t2-t1
 print(t)
 ```
-We save the annotated dataset in *.rds for further usage. 
 
-```{r 025}
-df_work<-cbind(df,readability, lexdiv,emotions,test,custom_lexicon)
-write_rds(df_works,"df_work.rds")
+We save the annotated dataset in a format *.rds for further usage. 
+
+```{r 021}
+df_work<-cbind(df,readability, lexdiv,emotions,test)
+write_rds(df_work,"df_work.rds")
 ```
 
+See you tomorrow and [go to session 2](https://benaventc.github.io/NLP_lecture_PSLWeek/session1.html)
 
-[go to session 2]()
+Some exercises before, for training :
+
+* compute the sentiment évolution for one administration of your choice.
+* ...
+
+
+
