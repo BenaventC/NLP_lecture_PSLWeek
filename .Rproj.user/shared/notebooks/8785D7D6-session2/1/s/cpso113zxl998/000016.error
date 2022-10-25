@@ -1,0 +1,1 @@
+{"frames":[{"func":"t(foo) %>% Dist(method = \"canberra2\")","file":"","line_number":0,"end_line_number":0,"character_number":0,"end_character_number":0}],"message":"Error in Dist(., method = \"canberra2\") : could not find function \"Dist\"\n"}

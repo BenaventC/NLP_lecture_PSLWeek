@@ -1,6 +1,0 @@
-"0","dist<-foo %>%
-  Dist(method=""canberra1"")
-"
-"2","Error in Dist(., method = ""canberra1"") : 
-  Not compatible with requested type: [type=character; target=double].
-"
