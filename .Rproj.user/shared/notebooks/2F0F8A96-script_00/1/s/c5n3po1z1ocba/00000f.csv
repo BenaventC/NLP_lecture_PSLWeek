@@ -1,3 +1,0 @@
-"0",""
-"0",""
-"0","ggplot(df,aes(x=ressenti,y=transformer_sentiment_score))+geom_violin()"

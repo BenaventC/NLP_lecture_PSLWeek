@@ -1,0 +1,7 @@
+"0","Avis_tf_idf <- Avis_words %>%"
+"0","  bind_tf_idf(word, doc_id, n)"
+"0",""
+"0","Avis_tf_idf %>%"
+"0","   select(-rank,n,Term_frequency) %>% "
+"0","  filter(tf_idf<0.5)%>%"
+"0","  arrange(desc(tf_idf))"
