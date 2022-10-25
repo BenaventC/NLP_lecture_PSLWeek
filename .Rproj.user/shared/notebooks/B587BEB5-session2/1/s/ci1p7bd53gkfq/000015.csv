@@ -1,0 +1,64 @@
+"0",""
+"0","#library(Rtsne) # Load package"
+"0","set.seed(42) # Sets seed for reproducibility"
+"0","tsne_out <- Rtsne(dist,"
+"0","                  initial_dims = 10,"
+"0","                  perplexity = 5,"
+"0","                  theta=.5,"
+"0","                  num_threads=4, verbose=1, is_distance=TRUE)"
+"1","Read the 1040 x 1040 data matrix successfully!
+"
+"1","OpenMP is working. 4 threads.
+"
+"1","Using no_dims = 2, perplexity = 5.000000, and theta = 0.500000
+"
+"1","Computing input similarities...
+"
+"1","Building tree...
+"
+"1","Done in 0.07 seconds (sparsity = 0.023027)!
+Learning embedding...
+"
+"1","Iteration 50: error is 89.402861 (50 iterations in 0.16 seconds)
+"
+"1","Iteration 100: error is 89.402517 (50 iterations in 0.16 seconds)
+"
+"1","Iteration 150: error is 89.402517 (50 iterations in 0.09 seconds)
+"
+"1","Iteration 200: error is 89.402517 (50 iterations in 0.09 seconds)
+"
+"1","Iteration 250: error is 89.402517 (50 iterations in 0.12 seconds)
+"
+"1","Iteration 300: error is 2.909790 (50 iterations in 0.09 seconds)
+"
+"1","Iteration 350: error is 2.340993 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 400: error is 2.164902 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 450: error is 2.080453 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 500: error is 2.033187 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 550: error is 2.004360 (50 iterations in 0.07 seconds)
+"
+"1","Iteration 600: error is 1.983124 (50 iterations in 0.07 seconds)
+"
+"1","Iteration 650: error is 1.965693 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 700: error is 1.951365 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 750: error is 1.940440 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 800: error is 1.931352 (50 iterations in 0.08 seconds)
+"
+"1","Iteration 850: error is 1.923421 (50 iterations in 0.07 seconds)
+"
+"1","Iteration 900: error is 1.917580 (50 iterations in 0.07 seconds)
+"
+"1","Iteration 950: error is 1.913357 (50 iterations in 0.07 seconds)
+"
+"1","Iteration 1000: error is 1.908515 (50 iterations in 0.07 seconds)
+"
+"1","Fitting performed in 1.76 seconds.
+"
+"0","plot(tsne_out$Y,asp=1) # Plot the result"

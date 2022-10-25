@@ -1,0 +1,6 @@
+"0","Avis_words%>%"
+"0","  filter(doc_id==""doc12441""|doc_id==""doc12912"") %>% "
+"0","  ggplot(aes(x=Term_frequency, fill = doc_id)) +"
+"0","  geom_histogram(show.legend = FALSE) +"
+"0","#  xlim(NA, 0.0009) +"
+"0","  facet_wrap(~doc_id, ncol = 2, scales = ""free_y"")"

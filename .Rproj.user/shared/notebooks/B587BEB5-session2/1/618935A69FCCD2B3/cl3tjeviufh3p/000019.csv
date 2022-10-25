@@ -1,0 +1,17 @@
+"0","foo<-Avis_tf_idf %>%
+  select(doc_id, word, tf_idf) %>%
+  filter(tf_idf>.1)%>%
+  pivot_wider(doc_id, names_from = ""word"", values_from = ""tf_idf"")%>% 
+  select(-doc_id)%>%
+  replace(is.na(.), 0)
+"
+"1","[1m[33mError[39m in [38;5;232m`vec_cbind()`[39m:[22m
+[33m![39m Names can't be of the form `...` or `..j`.
+[31mx[39m These names are invalid:
+  * ""..."" at location 1.
+Backtrace:
+[90m 1. [39m... %>% replace(is.na(.), 0)
+[90m 5. [39m[1mtidyr[22m:::pivot_wider.data.frame(...)
+[90m 6. [39mtidyr::pivot_wider_spec(...)
+[90m 9. [39m[38;5;232m[1m[94mvctrs::vec_cbind([38;5;232m[22m[39mrows, values, unused, .name_repair = names_repair[38;5;232m[1m[94m)[38;5;232m[22m[39m
+"

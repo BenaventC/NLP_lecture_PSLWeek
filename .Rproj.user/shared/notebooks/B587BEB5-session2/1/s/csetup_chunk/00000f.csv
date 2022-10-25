@@ -1,4 +1,14 @@
 "0","knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)"
+"2","Warning messages:
+"
+"2","1: package ‘quanteda’ was built under R version 4.0.5 
+"
+"2","2: "
+"2","In .recacheSubclasses(def@className, def, env) :"
+"2","
+ "
+"2"," undefined subclass ""numericVector"" of class ""Mnumeric""; definition not updated
+"
 "0","#from session 1"
 "0","library(tidyverse)"
 "0","library(udpipe)"
@@ -15,7 +25,10 @@
 "0","library(factoextra)"
 "0","library(igraph)"
 "0","library(ggwordcloud)"
+"0","library(ggrepel)"
+"0",""
 "0","library(Rtsne)"
+"0","library(tidytext)"
 "0",""
 "0","theme_set(theme_minimal())"
 "0",""

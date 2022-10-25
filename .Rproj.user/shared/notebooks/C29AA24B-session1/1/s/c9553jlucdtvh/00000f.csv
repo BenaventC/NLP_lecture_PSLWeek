@@ -1,0 +1,17 @@
+"0",""
+"0","library(udpipe)"
+"0","fr <- udpipe_download_model(language = ""french"")"
+"2","trying URL 'https://raw.githubusercontent.com/jwijffels/udpipe.models.ud.2.5/master/inst/udpipe-ud-2.5-191206/french-gsd-ud-2.5-191206.udpipe'
+"
+"2","Content type 'application/octet-stream'"
+"2"," length 23811948 bytes (22.7 MB)
+"
+"2","downloaded 22.7 MB
+
+"
+"0","udmodel_french <- udpipe_load_model(file = ""french-gsd-ud-2.5-191206.udpipe"")"
+"0",""
+"0",""
+"0","UD <- udpipe_annotate(udmodel_french, x=df$description)"
+"0","UD <- as.data.frame(UD)"
+"0","saveRDS(UD, ""UD.rds"")"
