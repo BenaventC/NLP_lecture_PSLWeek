@@ -1,0 +1,8 @@
+"0","foo<-Avis_tf_idf %>% 
+  left_join(dfm_count)%>%
+  filter(n>50)%>
+"
+"2","Error: unexpected input in:
+""  left_join(dfm_count)%>%
+  filter(n>50)%>""
+"

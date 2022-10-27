@@ -48,8 +48,8 @@ We start from the annotation task. First objective is to reconstitute tex with l
 ```{r 00}
 
 #read the file and select tokens
-UD<-readRDS("UD.rds")
-df<-UD%>%
+UD<-readRDS("./Data/UD.rds")
+df<-UD %>%
   select(doc_id, lemma, upos)%>%
   filter(upos=="NOUN"|upos=="PROPN"|upos=="VERB"|upos=="ADJ")%>%
   group_by(doc_id)%>%
@@ -57,64 +57,62 @@ df<-UD%>%
 
 head(df,5)
 
-#ajouter les variables doc_var
+#add doc_var  variables 
 
 ```
 
-come back to quanteda, making a dfm and a cfm.
+Come back to `quanteda`, making a dfm and a cfm.
 
 ```{r 01}
 corpus <- corpus(df$text) # docvars(corpus, field = "doc_id")
 summary(corpus)
 
 dfm<- corpus %>%
-  tokens() %>% tokens_remove(stopwords("french"))%>%
+  tokens() %>% 
+  tokens_remove(stopwords("french"))%>%
   dfm()
 
 dfm<- dfm %>%
-    dfm_trim(min_termfreq = 50, verbose = FALSE) 
+    dfm_trim(min_termfreq = 50, verbose = FALSE)  
+#a rule of thumb frequency must be at least2 times the density of 2 for a Thousand
 
+#wordcloud
 set.seed(100)
 textplot_wordcloud(dfm)
 
 dfm_df<- as.data.frame(dfm) 
 
 dim(dfm_df)
-head(dfm,5)
+head(dfm,8)
 
-
+#counting words
 dfm_count<-dfm_df %>%
   pivot_longer(-doc_id,names_to = "word", values_to = "n")%>%
-  group_by(word)%>% mutate(m=1)%>%
-  summarise(Doc_frequency=sum(m),  #une erreur à vérifier
-            Term_frequency=sum(n))
-
+  group_by(word)%>% 
+  summarise(Frequency=sum(n))
 ```
 
 # Map the tokens
 
 Issue is that with wordcloud position is meaningless, just random and paving..
 
-Goal : represent similarity beetwen words based on their coocurrence.
-
+Goal : represent similarity between words based on their co-occurences in a small dimension space.
 
 ## PCA approach
 
-come back to PCA
+Come back to PCA ! ( we pass CA and MCA)
 
 ```{r 02}
-library(FactoMineR)
-
+# with library(FactoMineR)
 foo<- dfm_df %>%
   column_to_rownames(var="doc_id")
 
 #PCA
-
-res.pca <- PCA(foo[,c(1:1030)], ncp=5,graph=FALSE)
+res.pca <- PCA(foo[,c(1:2905)], ncp=10,graph=FALSE) #could be pretty long
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 10))
 
 #label selection factor
 a=.2
-
 
 foo1<-as.data.frame(res.pca$var$coord) %>% 
   rownames_to_column(var="label") %>%
@@ -132,9 +130,10 @@ ggplot(foo1, aes(x=Dim.1, y=Dim.2))+
 
 #typo with kmnes
 
-foo1<-as.data.frame(res.pca$var$coord)
+foo<-as.data.frame(res.pca$var$coord)
+resKM <- kmeans(foo, 20, nstart = 25, trace=0)
 
-resKM <- kmeans(foo1, 16, nstart = 10, trace=0)
+
 foo<-as.data.frame(resKM$cluster) %>%
   rename(cluster=1)%>% 
   rownames_to_column(var="word") %>%
@@ -142,93 +141,119 @@ foo<-as.data.frame(resKM$cluster) %>%
 foo$cluster<-as.factor(foo$cluster)
 
 
-set.seed(42)
-library(ggwordcloud)
-ggplot(foo, aes(label = word, size=Term_frequency, group = cluster)) +
+set.seed(42) #for reproducibility
+
+#library(ggwordcloud)
+ggplot(foo, aes(label = word, size=Frequency, group = cluster)) +
   geom_text_wordcloud() +
-  scale_size_area(max_size = 8) +
-  facet_wrap(vars(cluster), ncol=4)+theme_minimal()
+  scale_size_area(max_size = 5) +
+  facet_wrap(vars(cluster), ncol=4)+
+  theme_minimal()+ 
+  labs(title=NULL) #comment enlever la numérotation ?
+
+ggsave("./Images/cluster.jpeg", width = 28, height = 20, units = "cm")
 
 ```
 
 ## Tsne Approach
 
-Alternative : UMAP
+A legacy of MDS ( multidimentional scaling)
+
 
 tsne to project large number of object in a small dimension space as tradition MDS, but with a principle of density, that dilate space where point are dense, and contract it when is not. 
 
 https://cran.r-project.org/web/packages/Rtsne/Rtsne.pdf
 
-Le calcul de la distance : Canberra
+Distance criteria : Canberra distance. 
+
+$$d_{ij}= \sum_{x = 1}^{k} \frac{x_{ik}-x_{jk}}{x_{ik}+x_{jk}}$$
+
+
+The best alternative seems to be  UMAP (add the link)
+
+first compute distance between words
 
 ```{r 03}
-dist<-dfm_df %>%
+#we need to transpose the matrix
+foo<-dfm_df %>%
   select(-doc_id)%>% 
   t()
 
-Word<-as.data.frame(rownames(dist))%>%
-  rename(Word=1)
+word<-as.data.frame(rownames(foo))%>%
+  rename(word=1)
 
-dist<-dist %>%
-  dist(method="canberra")
+#library(Rfast) à retester
+#dist<-foo %>%dist(method="canberra") #ts computing intensive. 
+saveRDS(dist, "./data/dist1.rds")
 ```
 
-model and 2D representation 
+Model and 2D tsne representation 
 
 ```{r 04}
-
 #library(Rtsne) # Load package
+#readRDS(dist1.rds)
 set.seed(42) # Sets seed for reproducibility
 tsne_out <- Rtsne(dist,
-                  initial_dims = 10,
-                  perplexity = 5,
+                  initial_dims = 50,
+                  perplexity = 30,
                   theta=.5,
-                  num_threads=4, verbose=1, is_distance=TRUE)
-plot(tsne_out$Y,asp=1) # Plot the result
+                  num_threads=4, 
+                  verbose=1, 
+                  is_distance=TRUE)
 
-
-tsne_out1<-tsne_out$Y
-tsne_out2<-as.data.frame(cbind(Word,tsne_out1) )%>%
+tsne_out1<-as.data.frame(tsne_out$Y)
+tsne_out2<-cbind(word,tsne_out1)%>%
   left_join(dfm_count)%>%
-  filter(Term_frequency<7000 & Term_frequency>500)
+  filter(Frequency<7000 & Frequency>300)
 
-ggplot(tsne_out2, aes(x=`1`, y=`2` ))+
-  geom_text_repel(aes(label=Word, size=Term_frequency),color="blue4", alpha=.5,max.overlaps = 50)
+ggplot(tsne_out2, aes(x=V1, y=V2))+
+  geom_text_repel(aes(label=word, 
+                      size=ifelse(Term_frequency>200,log10(Term_frequency),.5),
+                      alpha=log10(Term_frequency)),
+                  color="black",
+                  max.overlap=30)+
+  theme(legend.position = "none")+
+  labs(x=NULL, y=NULL)+  
+  scale_size(range = c(.5, 3))
 
-ggsave("tsne.jpeg", width = 28, height = 20, units = "cm")
+ggsave("./Images/tsne.jpeg", width = 28, height = 20, units = "cm")
 
 ```
-
-
 
 ## Semantic Networks
 
 A quick and dirty `quanteda` function `textplot_network`
 
+It is based on `igraph`. that will be the end of the lecture. 
+
 ```{r 05}
-tag_fcm <- fcm(dfm) ##coocurrence computing
+##coocurrence computing
+tag_fcm <- fcm(dfm) 
 head(tag_fcm)
-toptag <- names(topfeatures(dfm, 100)) 
+
+#select top tags
+toptag <- names(topfeatures(dfm, 300)) 
 
 topgat_fcm <- fcm_select(tag_fcm, pattern = toptag) #select 200 more frequent words
 
 textplot_network(topgat_fcm, 
                  min_freq = 0.10, 
-                 edge_alpha = 0.2, 
-                 edge_size = 1,
-                vertex_labelsize = 3)
+                 edge_alpha = 0.005, 
+                 edge_size = 0.1,
+                vertex_labelsize = 2.5)
+
+ggsave("./Images/network.jpeg", width = 28, height = 20, units = "cm")
+
 ```
-
-
-
 
 # Tfidf matrix
 
-Raw frequencies could be misleading as frequent word are not always distinctive. The idea is to weigth term frequency with document frequency, which is the numbre of document in which you could observe the term. 
+Raw frequencies could be misleading as frequent word are not always distinctive. The idea is to weigth term frequency with document frequency, which is the numbre of document in which you could observe the terms . 
 
-$$tfidf_{i}=tf_{i}\ln(\frac{N}{n_{i}})$$
+$$TfIdf_{i}=Tf_{i}\ln(\frac{N}{n_{i}})$$ 
+where N is the Total number of document and $n_{i}$ the number of document in which term i is present.
 
-To change, we will use `tidytext`. The code [come from](https://www.tidytextmining.com/tfidf.html) 
+To change style of writing operation, we will use `tidytext`. The code [come from](https://www.tidytextmining.com/tfidf.html) 
 
 ```{r 06}
 foo<-UD %>%
@@ -249,6 +274,8 @@ Avis_words <- left_join(foo, total_words) %>%
 Avis_words
 ```
 
+Just test on two documents to get a flavour of the story.
+
 Distribution and zipf like plot.
 
 ```{r 07}
@@ -268,7 +295,8 @@ Avis_words%>%
   scale_y_log10()
 
 ```
-tfidf computing 
+
+tfidf computing with tidytext function `bind_tf_idf`
 
 
 ```{r 08}
@@ -298,46 +326,46 @@ Avis_tf_idf%>%
 
 ```
 
-Reuse of tsne procedure. 
+Reuse of tsne procedure. But first compute distance
 
 
 ```{r 09}
-
 foo<-Avis_tf_idf %>% 
-  left_join(df_count)%>%
-  filter(Term_frequency>50)%>%
+  left_join(dfm_count) %>%
+  filter(Frequency>50)%>%
   select(doc_id, word, tf_idf) %>% 
   pivot_wider(doc_id, names_from = "word", values_from = "tf_idf")%>%
  column_to_rownames(var="doc_id")
 
-
-
 library(Rfast)
-dist<-t(foo) %>%
+dist2<-t(foo) %>%
   Dist(method="canberra2")
 
+saveRDS(dist2, "./data/dist2.rds")
+```
 
-#library(Rtsne) # Load package
+
+```{r 09b}
+dist2<-readRDS("./data/dist2.rds")
+
 set.seed(42) # Sets seed for reproducibility
 tsne_out <- Rtsne(dist,
                   initial_dims = 10,
-                  perplexity = 20,
+                  perplexity = 30,
                   theta=.5,
                   num_threads=4, verbose=1, is_distance=TRUE)
 plot(tsne_out$Y,asp=1) # Plot the result
 
 
 tsne_out1<-tsne_out$Y
-tsne_out2<-as.data.frame(cbind(Word,tsne_out1) )%>%
+tsne_out2<-as.data.frame(cbind(word,tsne_out1) )%>%
   left_join(dfm_count)%>%
-  filter(Term_frequency<7000 & Term_frequency>500)
+  filter(Frequency<7000 & Frequency>200)
 
 ggplot(tsne_out2, aes(x=`1`, y=`2` ))+
-  geom_text_repel(aes(label=Word, size=Term_frequency),color="blue4", alpha=.5,max.overlaps = 50)
+  geom_text_repel(aes(label=word, size=log10(Frequency)),color="blue4", alpha=.5,max.overlaps = 50)
 
 ggsave("tsne2.jpeg", width = 28, height = 20, units = "cm")
-
-
 ```
 
 # Compare groups

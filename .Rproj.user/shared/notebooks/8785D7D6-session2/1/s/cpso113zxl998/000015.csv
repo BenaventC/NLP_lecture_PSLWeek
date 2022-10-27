@@ -1,5 +1,0 @@
-"0","dist<-t(foo) %>%
-  Dist(method=""canberra2"")
-"
-"2","Error in Dist(., method = ""canberra2"") : could not find function ""Dist""
-"
