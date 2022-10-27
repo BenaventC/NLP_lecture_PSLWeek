@@ -1,4 +1,0 @@
-"0","knitr::opts_chunk$set(echo = TRUE)"
-"0","library(tidyverse)"
-"0","library(udpipe)"
-"0","library(flextable)"

@@ -42,7 +42,7 @@ t1=Sys.time()
 
 # Dfm & Co-occurence matrix
 
-We start from the annotation task. First objectif is to reconstitute tex with lemma. Because we are first interesting par the content, we will work mainly with noun, proper name and verbs. Things, people and action. We will add also adjectives as there are more attributives than qualifying. (fact versus jugement technics)
+We start from the annotation task. First objective is to reconstitute tex with lemma. Because we are first interesting par the content, we will work mainly with noun, proper name and verbs. Things, people and action. We will add also adjectives as there are more attributives than qualifying. (fact versus jugement technics)
 
 
 ```{r 00}
@@ -72,7 +72,7 @@ dfm<- corpus %>%
   dfm()
 
 dfm<- dfm %>%
-    dfm_trim(min_termfreq = 100, verbose = FALSE) 
+    dfm_trim(min_termfreq = 50, verbose = FALSE) 
 
 set.seed(100)
 textplot_wordcloud(dfm)
@@ -84,8 +84,8 @@ head(dfm,5)
 
 
 dfm_count<-dfm_df %>%
-  pivot_longer(-doc_id,names_to = "Word", values_to = "n")%>%
-  group_by(Word)%>% mutate(m=1)%>%
+  pivot_longer(-doc_id,names_to = "word", values_to = "n")%>%
+  group_by(word)%>% mutate(m=1)%>%
   summarise(Doc_frequency=sum(m),  #une erreur à vérifier
             Term_frequency=sum(n))
 
@@ -96,6 +96,7 @@ dfm_count<-dfm_df %>%
 Issue is that with wordcloud position is meaningless, just random and paving..
 
 Goal : represent similarity beetwen words based on their coocurrence.
+
 
 ## PCA approach
 
@@ -112,7 +113,7 @@ foo<- dfm_df %>%
 res.pca <- PCA(foo[,c(1:1030)], ncp=5,graph=FALSE)
 
 #label selection factor
-a=.3
+a=.2
 
 
 foo1<-as.data.frame(res.pca$var$coord) %>% 
@@ -136,14 +137,14 @@ foo1<-as.data.frame(res.pca$var$coord)
 resKM <- kmeans(foo1, 16, nstart = 10, trace=0)
 foo<-as.data.frame(resKM$cluster) %>%
   rename(cluster=1)%>% 
-  rownames_to_column(var="Word") %>%
+  rownames_to_column(var="word") %>%
   left_join(dfm_count)
 foo$cluster<-as.factor(foo$cluster)
 
 
 set.seed(42)
 library(ggwordcloud)
-ggplot(foo, aes(label = Word, size=Term_frequency, group = cluster)) +
+ggplot(foo, aes(label = word, size=Term_frequency, group = cluster)) +
   geom_text_wordcloud() +
   scale_size_area(max_size = 8) +
   facet_wrap(vars(cluster), ncol=4)+theme_minimal()
@@ -154,7 +155,7 @@ ggplot(foo, aes(label = Word, size=Term_frequency, group = cluster)) +
 
 Alternative : UMAP
 
-tsne to project large number of object in a small dinesion space as tradition MDS, but with a principle of density, that dilate space where point are dense, and contracte it when is not. 
+tsne to project large number of object in a small dimension space as tradition MDS, but with a principle of density, that dilate space where point are dense, and contract it when is not. 
 
 https://cran.r-project.org/web/packages/Rtsne/Rtsne.pdf
 
@@ -164,6 +165,7 @@ Le calcul de la distance : Canberra
 dist<-dfm_df %>%
   select(-doc_id)%>% 
   t()
+
 Word<-as.data.frame(rownames(dist))%>%
   rename(Word=1)
 
@@ -206,17 +208,15 @@ A quick and dirty `quanteda` function `textplot_network`
 ```{r 05}
 tag_fcm <- fcm(dfm) ##coocurrence computing
 head(tag_fcm)
-toptag <- names(topfeatures(dfm, 200)) 
+toptag <- names(topfeatures(dfm, 100)) 
 
 topgat_fcm <- fcm_select(tag_fcm, pattern = toptag) #select 200 more frequent words
 
 textplot_network(topgat_fcm, 
-                 min_freq = 0.01, 
-                 edge_alpha = 0.8, 
-                 edge_size = 5,
-                vertex_labelsize = 5)
-
-
+                 min_freq = 0.10, 
+                 edge_alpha = 0.2, 
+                 edge_size = 1,
+                vertex_labelsize = 3)
 ```
 
 
@@ -303,14 +303,18 @@ Reuse of tsne procedure.
 
 ```{r 09}
 
-foo<-Avis_tf_idf %>%
+foo<-Avis_tf_idf %>% 
+  left_join(df_count)%>%
+  filter(Term_frequency>50)%>%
   select(doc_id, word, tf_idf) %>% 
-  filter(tf_idf <1 & tf_idf> .3) %>% #filtre sur le tfidf
-  pivot_wider(doc_id, names_from = "word", values_from = "tf_idf")%>%select(-doc_id)
+  pivot_wider(doc_id, names_from = "word", values_from = "tf_idf")%>%
+ column_to_rownames(var="doc_id")
+
+
 
 library(Rfast)
-dist<-foo %>%
-  dist(method="canberra")
+dist<-t(foo) %>%
+  Dist(method="canberra2")
 
 
 #library(Rtsne) # Load package
