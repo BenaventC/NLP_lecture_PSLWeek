@@ -28,7 +28,7 @@ library("quanteda.dictionaries")
 library(syuzhet)  #analyse du sentimeent
 library(lubridate) #date processing
 library(udpipe) #annotations
-library(igraph) #représentation de réseaux
+library(igraph) #network representations
 
 
 theme_set(theme_minimal())
@@ -46,11 +46,13 @@ Comment are relative to a life experience (renew a passeport) at a certain time,
 
 ```{r 01}
 #read the file and sample to reduce computation ( look at the end)
+#we put the content of the csv file in a dataframe and select only certain columns
 df <- read_csv("data_original_12062022_normalise_sentiment_transformers_lemna_words_adj.csv")%>%
   select (id, date_ecrit, titre, description, ressenti, pays,intitule, canaux_typologie_1, transformer_sentiment_score) 
 
-# un peu de correction
-         
+# we treat the data
+# the mutate function enables us to create or modify a column 
+# here, we manipulate data for our future analysis
 df<-df %>% 
   mutate(description=str_replace_all(description,"\\.(?=[A-Za-z])", ". "), #space after dot
          description=str_replace(description,"_", " "), #remove underscore
@@ -59,7 +61,8 @@ df<-df %>%
 
 #%>% sample_n(1000)
 
-head(df, 5)
+head(df, 5) #we display the first 5 rows of the data frame
+#we plot the transformer sentiment distribution, as a density and as a cumulative distribution 
 g1<-ggplot(df,aes(x=transformer_sentiment_score))+
   geom_density(fill="pink", alpha=.5)
 
@@ -68,6 +71,8 @@ g2<-ggplot(df, aes(x=transformer_sentiment_score)) +
   xlim(0,1)
 
 #cowplot
+#The plot_grid() function provides a simple interface for arranging plots into a grid and adding labels to them.
+#https://wilkelab.org/cowplot/articles/plot_grid.html
 plot_grid(
   g1, g2,
   labels = "AUTO"
