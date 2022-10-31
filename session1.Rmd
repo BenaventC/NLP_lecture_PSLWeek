@@ -2,6 +2,7 @@
 title: "Session1 : text metric and word annotations"
 author: "cb,jcrm,bc,oc"
 date: "`r Sys.Date()`"
+bibliography: "PLSweek2022.bib"
 output: 
   html_document :
     toc: true
@@ -16,7 +17,7 @@ Mainly [`Quanteda`](http://quanteda.io/) and [`udpipe`](https://cran.r-project.o
 ```{r setup, include=TRUE,echo=TRUE,message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)
 library(tidyverse) # a swiss kniffe
-library(udpipe) # syntaxis and lexicl annotations
+library(udpipe) # syntaxis and lexical annotations
 library(flextable) #for table rendering
 library(ggwordcloud) #for ploting
 library(cowplot) #for ploting
@@ -24,45 +25,52 @@ library(quanteda) #a complete text mining package
 library(quanteda.textmodels)
 library(quanteda.textstats)
 library(quanteda.textplots)
-library("quanteda.dictionaries")
+library(quanteda.dictionaries)
 library(syuzhet)  #analyse du sentimeent
 library(lubridate) #date processing
-library(udpipe) #annotations
+library(udpipe) #annotations et tokenization
 library(igraph) #network representations
-
-
+library(FactoMineR)
+library(factoextra)
+library(citr)
 theme_set(theme_minimal())
 
 t1=Sys.time()
 ```
 
-# Our Data
+# Dataset : a first view
 
-User Experience projet from DITP (Services public+)[ https://www.modernisation.gouv.fr/actualites/services-publics-plus-de-15-000-experiences-dusagers-partagees-sur-la-plateforme)]
+User Experience project from DITP [Services public+](https://www.modernisation.gouv.fr/actualites/services-publics-plus-de-15-000-experiences-dusagers-partagees-sur-la-plateforme)
 
-Comment are relative to a life experience (renew a passeport) at a certain time, with a specific administration in a certain place.  
+Comments are relative to a life experience (renew a passport) at a certain time, with a specific administration in a certain place.  
 
-## Sentiment distribution (transformer method)
+## Sentiment distribution
+
+The score has been compute with a transformer model, we will examine it further at session 6. It is a probability to be positive. 
 
 ```{r 01}
 #read the file and sample to reduce computation ( look at the end)
 #we put the content of the csv file in a dataframe and select only certain columns
-df <- read_csv("data_original_12062022_normalise_sentiment_transformers_lemna_words_adj.csv")%>%
+df <- read_csv("./Data/data_original_12062022_normalise_sentiment_transformers_lemna_words_adj.csv")%>%
   select (id, date_ecrit, titre, description, ressenti, pays,intitule, canaux_typologie_1, transformer_sentiment_score) 
 
 # we treat the data
 # the mutate function enables us to create or modify a column 
-# here, we manipulate data for our future analysis
+# here, we manipulate data for correcting default of the text.
 df<-df %>% 
   mutate(description=str_replace_all(description,"\\.(?=[A-Za-z])", ". "), #space after dot
          description=str_replace(description,"_", " "), #remove underscore
          description=str_replace(description,"(\u20AC)", "euro") )#change euro in euro
 
 
-#%>% sample_n(1000)
+#%>% sample_n(1000) to avoid too long intermediary computing.
 
 head(df, 5) #we display the first 5 rows of the data frame
-#we plot the transformer sentiment distribution, as a density and as a cumulative distribution 
+```
+
+We plot the transformer sentiment distribution, as a density and as a cumulative distribution. `The plot_grid()` function provides a simple interface for arranging plots into a grid and adding labels to them, it is offered by [`cowplot`](https://wilkelab.org/cowplot/articles/plot_grid.html).
+
+```{r 01b}
 g1<-ggplot(df,aes(x=transformer_sentiment_score))+
   geom_density(fill="pink", alpha=.5)
 
@@ -71,19 +79,20 @@ g2<-ggplot(df, aes(x=transformer_sentiment_score)) +
   xlim(0,1)
 
 #cowplot
-#The plot_grid() function provides a simple interface for arranging plots into a grid and adding labels to them.
-#https://wilkelab.org/cowplot/articles/plot_grid.html
+
 plot_grid(
   g1, g2,
   labels = "AUTO"
   )
-```
 
+ggsave("./Images/sentiment1.jpeg", width = 28, height = 20, units = "cm")
+
+```
 
 Compare with " smiles"
 
 ```{r 02}
-#score et ressenti
+#score et "ressenti"
 
 g2<-ggplot(df, aes(y=transformer_sentiment_score, x=ressenti)) +
   geom_violin(fill="pink", alpha=.5)+
@@ -92,10 +101,13 @@ g2<-ggplot(df, aes(y=transformer_sentiment_score, x=ressenti)) +
   labs(x=NULL, y = "Score transformer")
 
 g2
+ggsave("./Images/Sentiment2.jpeg", width = 28, height = 20, units = "cm")
+
 ```
 
 ## channels involved
-Les canaux d'interaction concernés par l'expérience. 
+
+Each experience is relative to different channels. As this variable is encoded as a list of multiple choice, we need to rebuild a table with with as many columns as the modalities of the channel variable.
 
 ```{r 03}
 ## multiple choice question recoding
@@ -109,22 +121,77 @@ typo<-as.data.frame(str_split_fixed(df$canaux_typologie_1, ",", 10))%>%
   summarise(valeur=1) %>%
   pivot_wider(id,names_from="variable", values_from="valeur")%>%
   replace(is.na(.), 0)
-
-#count the number of row
+head(typo)
+#count the number of rows
 n_c<-nrow(typo)
 n_c
+
+```
+
+More data processing for the ggplot.
+
+```{r 03b}
 foo<-typo %>% 
   pivot_longer(-id, names_to = "variable", values_to="value") %>% 
   group_by(variable)%>%
-  summarise(Penetration=mean(value)) 
+  summarise(Penetration=mean(value)) %>%filter(variable!=",")
 
 ggplot(foo, aes(x=reorder(variable, Penetration),y=Penetration))+
   geom_bar(stat="identity",fill="firebrick")+
   coord_flip()+
   labs(x=NULL, y="taux de pénétration")
+ggsave("./Images/channel.jpeg", width = 28, height = 20, units = "cm")
+
+```
+
+A more deeper exploration
+
+```{r 03c}
+
+#cooccurence matrix
+foo1 <- as.data.frame(typo)%>%
+  select(2:11)%>%
+  as.matrix()
+out <- crossprod(foo1)  # Same as: t(X) %*% X
+#diag(out) <- 0       # (b/c you don't count co-occurrences of an aspect with itself)
+
+out<- as.data.frame(out) %>%
+  rownames_to_column(var="Channels")%>% 
+  pivot_longer(-Channels,names_to = "Channelsb", values_to = "frequency")
+
+ggplot(data = out, aes(x=Channels, y=Channelsb, fill=log10(frequency))) + 
+  geom_tile()+
+  scale_fill_gradient(low = "Gold", high = "Firebrick", name="Frequency")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+  labs(x=NULL, y=NULL)
+
+# compare to a theoretical distribution
+Y<-foo %>%
+  column_to_rownames(var="variable")%>%
+  as.matrix()
+
+n=nrow(typo)
+Z<-Y%*%t(Y) %>%as.data.frame()%>%  
+  rownames_to_column(var="Channels")%>% 
+  pivot_longer(-Channels,names_to = "Channelsb", values_to = "frequencyT")%>%
+  mutate(frequencyT=frequencyT*n)
+
+w<- merge(out,Z) %>%
+  mutate(chi2=(frequency-frequencyT)^2/frequencyT)%>%
+  mutate(chi2=ifelse(Channels==Channelsb,0,chi2))
+
+ggplot(data = w, aes(x=Channels, y=Channelsb, fill=chi2)) + 
+  geom_tile()+
+  scale_fill_gradient(low = "Gold", high = "Firebrick", name="Chi2")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+  labs(x=NULL, y=NULL)
 ```
 
 ## Administrations involved
+
+Each experience concern one administrations. He is the list of most populuous administration.
 
 ```{r 04}
 #typo
@@ -137,7 +204,11 @@ t<-as.data.frame(table(df$intitule)) %>%
 
 ggplot(t, aes(x=reorder(Var1, Freq),y=Freq))+
   geom_bar(stat="identity",fill="firebrick")+
-  coord_flip()+scale_y_log10()
+  coord_flip()+
+  labs(x=NULL, y="n")
+
+ggsave("./Images/channel_freq.jpeg", width = 28, height = 20, units = "cm")
+
 ```
 
 Sentiment score comparison
@@ -146,16 +217,35 @@ Sentiment score comparison
 foo<-df%>%mutate(n=1)%>%
   group_by(intitule)%>%
   summarise(score=mean(transformer_sentiment_score,na.rm=TRUE),n=sum(n)) %>% 
+  filter(!is.na(intitule))%>%
   filter(n>50)
 
-ggplot(foo, aes(x=reorder(intitule, n), y=score ))+  geom_bar(stat="identity",fill="firebrick")+
+ggplot(foo, aes(x=reorder(intitule,score), y=score ))+  
+  geom_bar(stat="identity",aes(fill=desc(n)))+
   coord_flip()
+
+ggsave("./Images/channel_sent.jpeg", width = 28, height = 20, units = "cm")
+
+```
+
+```{r 05b}
+foo<-merge(df,typo) %>%
+  select(7,11:19,5) %>% 
+  mutate(across(where(is.numeric), as.character))
+
+res.mca <- MCA(foo,quali.sup=c(1, 11))
+fviz_mca_var(res.mca, 
+             repel = TRUE, # Avoid text overlapping (slow)
+             ggtheme = theme_minimal(),
+             labelsize = 2)
+
+ggsave("./Images/channel_MCA.jpeg", width = 28, height = 20, units = "cm")
 
 ```
 
 # Text level analysis 
 
-(stylometry)
+Stylometry are the (old) set of technics that process the text as a whole and give information on a particular feature of style.
 
 ## counting
 
@@ -164,7 +254,11 @@ the number of words per review.
 ```{r 06}
 df$n_words<-str_count(df$description)
 ggplot(df,aes(x=n_words))+
-  geom_density()+scale_x_log10()
+  geom_density()+
+  scale_x_log10()
+
+ggsave("./Images/count.jpeg", width = 28, height = 20, units = "cm")
+
 ```
 
 Evolution of the number of reviews, size of reviews, and correlation between.
@@ -176,7 +270,7 @@ foo<-df %>%
             size_t=mean(n_words))
 
 ggplot(foo, aes(x=date_ecrit, y=n))+
-  geom_point()+
+  geom_line()+
   scale_y_log10()+
   geom_smooth()
 
@@ -335,9 +429,13 @@ ggplot(foo1,aes(x=date, y=Score, group=Variable))+
 
 ```
 
+[to go further](https://programminghistorian.org/en/lessons/introduction-to-stylometry-with-python)
+
 ## Own-made dictionnary
 
 Just building list of words and given them a weight.
+
+(we could improve the list of word and test availability of regex formulas)
 
 ```{r 14}
 
@@ -368,12 +466,13 @@ ggplot(foo1,aes(x=date, y=custom_distrib))+
 
 # Word level analysis
 
-Annotation are apply at the level of words : lexical (stem, lemma, wordnet) and syntaxis annotations ( PS, syntaxis dependences).
+Annotation are apply at the level of words : lexical (stem, lemma, Wordnet) and syntactic annotations ( PoS, syntaxis dependences).
 
+[#togofurther with wordnet](https://cran.r-project.org/web/packages/wordnet/vignettes/wordnet.pdf)
 
 ## Tokens
 
-The very first step. Usefull to set the vocabulary
+The very first step. Useful to set the vocabulary
 
 ```{r 015}
 #df$text<-str_replace(df$text, "\\w+", "J ") # trouver la solution!!!! pour le '
@@ -407,12 +506,12 @@ dfmat1 <- dfm(foo,
 
 textplot_wordcloud(dfmat1, max_words = 50)
 
-
 dfmat2 <- dfm(corpus_subset(corpus, intitule == "CAF"),
               remove = stopwords("french"), remove_punct = TRUE) %>%
    dfm_trim(min_termfreq = 3)
 
 textplot_wordcloud(dfmat2, max_words = 150)
+ggsave("./Images/worcloud.jpeg", width = 28, height = 20, units = "cm")
 
 ```
 
@@ -423,7 +522,6 @@ looking for expressions
 
 
 ```{r 16}
-
 #on sélectionne les mots commençant par une majuscule
 toks_cap <- tokens_select(foo, 
                                pattern = "^[A-Z]",
@@ -435,7 +533,6 @@ toks_cap <- tokens_select(foo,
 tstat_col_cap <- textstat_collocations(toks_cap, min_count = 3, tolower = FALSE)
 #head(as.data.frame(tstat_col_cap),15)
 
-
 toks_comp <- tokens_compound(foo, pattern = tstat_col_cap[tstat_col_cap$lamba > 10], 
                              case_insensitive = FALSE)
 
@@ -445,26 +542,27 @@ head(toks_comp)
 
 ## Lemmas and POS
 
-```{r 17, eval=FALSE}
+```{r 17, eval=TRUE}
 
 library(udpipe)
 fr <- udpipe_download_model(language = "french")
 udmodel_french <- udpipe_load_model(file = "french-gsd-ud-2.5-191206.udpipe")
 
-UD <- udpipe_annotate(udmodel_french, x=df$description, trace =1000)
+UD <- udpipe_annotate(udmodel_french, x=df$description, trace =1000,parallel.cores = 4)
 UD <- as.data.frame(UD)
-saveRDS(UD, "UD.rds")
+saveRDS(UD, "./Data/UD.rds")
 ```
 
 Let examine the content : lemma per POS.
 
 ```{r 18}
-UD<-readRDS("UD.rds")
+UD<-readRDS("./Data/UD.rds")
 foo<-UD%>%
   group_by(upos)%>%
   summarise(n=n())%>%
   ggplot(aes(x=reorder(upos,n), y=n))+
   geom_bar(stat = "identity")+coord_flip()
+
 foo
 foo<-UD %>%
   filter(upos=="NOUN") %>%
@@ -490,7 +588,7 @@ foo
 ```
 
 
-## syntaxic dependance
+## Syntaxic dependance
 
 A few `dplyr gymnastics', and thats already the session 2 . 
 
@@ -498,8 +596,8 @@ A few `dplyr gymnastics', and thats already the session 2 .
 
 for dataviz `igraph` is the tool.
 
-
 ```{r 19, fig.width=12}
+
 foo1<-UD %>%
   mutate(id=paste0(doc_id,paragraph_id,sentence_id,token_id))%>%
   select(id, lemma)%>%
@@ -539,14 +637,14 @@ We save the annotated dataset in a format *.rds for further usage.
 
 ```{r 021}
 df_work<-cbind(df,readability, lexdiv,emotions,test)
-write_rds(df_work,"df_work.rds")
+write_rds(df_work,"./Data/df_work.rds")
 ```
 
-See you tomorrow and [go to session 2](https://benaventc.github.io/NLP_lecture_PSLWeek/session1.html)
+See you tomorrow and [go to session 2](https://benaventc.github.io/NLP_lecture_PSLWeek/session2.html)
 
 Some exercises before, for training :
 
-* compute the sentiment évolution for one administration of your choice.
+* compute the sentiment evolution for one administration of your choice.
 * ...
 
 

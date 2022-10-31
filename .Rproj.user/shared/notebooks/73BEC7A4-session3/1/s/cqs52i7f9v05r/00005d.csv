@@ -1,7 +1,0 @@
-"0","# with library(FactoMineR)"
-"0","foo<- dfm_df %>%"
-"0","  column_to_rownames(var=""doc_id"")"
-"0",""
-"0","#PCA"
-"0","res.pca <- PCA(foo[,c(1:1658)], ncp=10,graph=FALSE) #could be pretty long"
-"0","fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 10))"

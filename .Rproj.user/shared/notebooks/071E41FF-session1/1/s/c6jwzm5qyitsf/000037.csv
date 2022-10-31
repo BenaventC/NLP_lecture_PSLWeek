@@ -1,0 +1,4 @@
+"0","fviz_mca_var(res.mca, "
+"0","             repel = TRUE, # Avoid text overlapping (slow)"
+"0","             ggtheme = theme_minimal(),"
+"0","             labelsize = 2)"

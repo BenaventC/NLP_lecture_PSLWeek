@@ -1,0 +1,5 @@
+"0","foo<-merge(df,typo) %>%"
+"0","  select(7,11:19,5) %>% "
+"0","  mutate(across(where(is.numeric), as.character))"
+"0",""
+"0","res.mca <- MCA(foo,quali.sup=c(1, 11))"

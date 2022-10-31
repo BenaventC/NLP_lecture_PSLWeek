@@ -1,0 +1,5 @@
+"0",""
+"0","ggplot(foo, aes(x=date_ecrit, y=size_t))+"
+"0","  geom_point()+"
+"0","  scale_y_log10()+"
+"0","  geom_smooth()"

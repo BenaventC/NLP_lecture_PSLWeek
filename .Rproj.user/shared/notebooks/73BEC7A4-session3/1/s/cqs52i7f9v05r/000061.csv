@@ -1,7 +1,0 @@
-"0",""
-"0","foo1<-as.data.frame(res.pca$var$coord) %>% "
-"0","  rownames_to_column(var=""label"") %>%"
-"0","  filter(Dim.3> a | Dim.3< -a | Dim.4> a | Dim.4< -a)"
-"0",""
-"0","ggplot(foo1, aes(x=Dim.1, y=Dim.2))+"
-"0","  geom_text(aes(label=label),size=2)"

@@ -1,0 +1,8 @@
+"0","UD<-readRDS(""./Data/UD.rds"")"
+"0","foo<-UD%>%"
+"0","  group_by(upos)%>%"
+"0","  summarise(n=n())%>%"
+"0","  ggplot(aes(x=reorder(upos,n), y=n))+"
+"0","  geom_bar(stat = ""identity"")+coord_flip()"
+"0",""
+"0","foo"
