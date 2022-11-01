@@ -7,6 +7,7 @@ output:
     toc: true
     toc_float: true
     toc_depth: 3
+bibliography: [PLSweek2022.bib]
 ---
 
 # Tools
@@ -24,7 +25,7 @@ library(quanteda.textstats)
 library(quanteda.textplots)
 library(syuzhet)  #analyse du sentimeent
 
-# new for session 3
+# new for session 2
 library(FactoMineR)
 library(factoextra)
 library(igraph)
@@ -34,6 +35,11 @@ library(ggrepel)
 library(Rtsne)
 library(tidytext)
 
+# new for session 3
+library(cleanNLP)
+library(text2vec)
+
+
 theme_set(theme_minimal())
 
 t1=Sys.time()
@@ -42,29 +48,96 @@ t1=Sys.time()
 
 # The basic LDA
 
-proposed by @blei
+proposed by @blei_latent_2003 (nearly 20 years ago!)
 
-## a few of theory
+## A few theory
+
+![LDA](./Images/LDA-algorithm.png)
 
 ## Application
 
-# some other models
+Prepare the data (a TfIdf approach with `cleanNLP` elegant function)
 
-Topics model are popular, and quicly new models were suggested. 
+```{r 01, fig.width=12}
+UD<-readRDS("./Data/UD.rds")
 
-## STM
+#library(cleanNLP) #an other technics for tf_idf
+tf <- UD%>%
+  filter(upos %in% c("NOUN", "VERB")) %>%
+  cnlp_utils_tfidf(min_df = 0.05, max_df = 0.95, tf_weight = "raw")
+```
 
-Introduce de control a third variable, as a regression approach model, very usefull to introduce a time parameter. But also let the topic being correlateed, which open ti hierarchical topics
+The LDA model with `text2vec`
 
-## semi-supervised
+```{r 02, fig.width=12}
+#library(text2vec)
+lda_model = LDA$new(n_topics = 12, doc_topic_prior = 0.1, topic_word_prior = 0.01)
+
+set.seed(67) #pour la reproducibilité des résultats
+#On définit les paramètres du processus d'estimation : 
+##n_iter = le nombre d'itérations
+##convergence_tol =le seuil de convergence
+doc_topic_distr = 
+  lda_model$fit_transform(x = tf, 
+                          n_iter = 1000, 
+                          convergence_tol = 0.001, 
+                          n_check_convergence = 25, 
+                          progressbar = TRUE)
+
+```
+
+Topic description
+
+```{r 03, fig.width=12}
+lda_res<-as.data.frame(lda_model$get_top_words(n = 15, lambda = 0.30))
+lda_res$rank<-as.numeric(row.names(lda_res))
+
+lda_res<-lda_res%>% gather(variable, value, -rank)
+
+ggplot(lda_res, aes(x=variable, y= rank, group =  value , label = value)) + 
+  scale_y_reverse() + 
+  geom_text(aes(color=variable,size=sqrt(26-rank)))+
+  scale_color_hue()+
+  guides(color="none",size="none")+
+  labs(x="topics", y="par ordre de pertinence")
+
+# un nuage de mot plutôt
+```
+
+A more interactive description (that we cannot edit here... need to be in rstudio)
+
+```{r 04, fig.width=12}
+#description des topics en fonction d'un degré de pertinence = lamba ( lambda =1 probabilité d'obtenir le terme sachant le topic)
+
+library(LDAvis)
+lda_model$plot() #mode interactif
+
+```
+
+## the optimal number of topics
+
+No optimal analytics methods. Okham rule. 
+
+but some systematic approachs by comparing index for different solutions. 
+
+### Perplexity
+
+http://qpleple.com/perplexity-to-evaluate-topic-models/
+
+### package  `ldatuning`
+
+
+# Some other models
+
+Topics model are popular, and quickly new models were suggested. 
+
+## STM : regression like
+
+Introduce de control a third variable, as a regression approach model, very usefull to introduce a time parameter. But also let the topic being correlated, which open to hierarchical topics
+
+## semi-supervised lda
 
 We could help the solution by predefining key tokens. Seed_lda
-
-# the optimal number of topic
-
-No optimal analytics methods
-
-but some systematic approach by comparing index for different solutions. 
 
 
 # Notes
