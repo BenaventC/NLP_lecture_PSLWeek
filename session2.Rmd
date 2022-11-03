@@ -1,5 +1,5 @@
 ---
-title: "Session3 : topic model"
+title: "Session 2 : semantic space"
 author: "cb,jcrm,bc,oc"
 date: "`r Sys.Date()`"
 output: 
@@ -454,7 +454,7 @@ print(t)
 ```
 
 
-See you to later and [go to session 3](https://benaventc.github.io/NLP_lecture_PSLWeek/session2.html)
+See you to later and [go to session 3](https://benaventc.github.io/NLP_lecture_PSLWeek/session3.html)
 
 Some exercises before, for training :
 

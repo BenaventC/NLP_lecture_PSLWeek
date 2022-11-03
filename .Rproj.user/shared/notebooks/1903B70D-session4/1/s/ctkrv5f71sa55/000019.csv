@@ -1,0 +1,7 @@
+"0",""
+"0","#on typologise des termes"
+"0",""
+"0","library(fastcluster) #pour aller plus vite"
+"0","distance<-as.dist(1 - cor(t(embedding)))"
+"0","arbre <- hclust(distance, method = ""ward.D2"")"
+"0","plot(arbre,  xlab = """", ylab = """", sub = """", axes = FALSE, hang = -1)"

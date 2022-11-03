@@ -1,9 +1,4 @@
 "0","knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)"
-"2","Warning message:
-"
-"2","In flat_str(content, breaks) :"
-"2"," Coercing content to character
-"
 "0","#from session 1"
 "0","library(tidyverse)"
 "0","library(udpipe)"

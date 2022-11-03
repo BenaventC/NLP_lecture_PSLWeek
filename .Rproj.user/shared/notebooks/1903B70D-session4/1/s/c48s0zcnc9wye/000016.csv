@@ -1,0 +1,8 @@
+"0","## vectorisation des textes"
+"0",""
+"0","newdoc <- doc2vec(model, ""arbitraire inégalité iniquité partialité équité impartialité justice légitimité"", type = ""embedding"")"
+"0",""
+"0","foo<-word2vec_similarity(emb1, newdoc)"
+"0","emb2<-cbind(foo,x)%>%"
+"0","  as.data.frame() %>% arrange(desc(foo))"
+"0","head(emb2,10)"

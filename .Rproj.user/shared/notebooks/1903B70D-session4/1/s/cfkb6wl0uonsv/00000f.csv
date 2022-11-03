@@ -1,0 +1,8 @@
+"0","#titre<-UD %>%group_by"
+"0","x      <- data.frame(doc_id           = text2$doc_id, "
+"0","                     text             = text2$description, "
+"0","                     stringsAsFactors = FALSE)"
+"0","x$text <- txt_clean_word2vec(x$text, tolower=TRUE)"
+"0","emb1 <- doc2vec(model, x$text,  split = "" "",type = ""embedding"")"
+"0",""
+"0","  "

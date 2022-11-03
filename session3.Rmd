@@ -153,10 +153,6 @@ print(t)
 
 See you to later and [go to session 4](https://benaventc.github.io/NLP_lecture_PSLWeek/session4.html)
 
-Some exercises before, for training :
-
-* Explore the adjectives world
-* Compare administratiion (main) in term of qualificatives.
 
 # References
 

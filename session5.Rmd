@@ -1,0 +1,98 @@
+---
+title: "Session 5 : ML for text"
+author: "cb,jcrm,bc,oc"
+date: "`r Sys.Date()`"
+output: 
+  html_document :
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+# Tools
+
+```{r setup, include=TRUE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)
+#from session 1 & 2
+library(tidyverse)
+library(udpipe)
+library(flextable)
+library(cowplot)
+library(quanteda)
+library(quanteda.textmodels)
+library(quanteda.textstats)
+library(quanteda.textplots)
+library(syuzhet)  #analyse du sentimeent
+
+# new for session 3
+library(FactoMineR)
+library(factoextra)
+library(igraph)
+library(ggwordcloud)
+library(ggrepel)
+
+library(Rtsne)
+library(tidytext)
+
+theme_set(theme_minimal())
+
+t1=Sys.time()
+
+```
+
+# The classification question
+
+## some theory
+
+find a function y=f(x)+e where e is minimal.
+
+
+
+
+## Annotation
+
+## a train-test approach
+
+## modeling approach
+
+A large number of specification and model families.
+
+![Machine Learning Model Typology](MLtypology.png)
+
+
+
+## linear additive model
+
+## decision tree models
+
+## 
+
+
+# Start with a naive bayes
+
+# Improve with  a RF strategy
+
+# Rnn to tache in count the sequential structure of text
+
+
+
+# Notes
+
+Beware to computing time! Best to sample for testing. (come back to the beginning)
+
+```{r 20}
+t2=Sys.time()
+t<- t2-t1
+print(t)
+```
+
+
+See you to later and [go to session 4](https://benaventc.github.io/NLP_lecture_PSLWeek/session4.html)
+
+Some exercises before, for training :
+
+* Explore the adjectives world
+* Compare administratiion (main) in term of qualificatives.
+
+# References
+
