@@ -14,6 +14,7 @@ bibliography: [PLSweek2022.bib]
 
 @blei_latent_2003
 Hello, this is a test.
+Goodbye, another test.
 
 
 ```{r setup, include=TRUE, message=FALSE, warning=FALSE}
