@@ -1,5 +1,0 @@
-"0",""
-"0","ggplot(foo, aes(x=n, y=size_t))+"
-"0","  geom_point()+"
-"0","  scale_x_log10()+  scale_y_log10()+"
-"0","  geom_smooth()"

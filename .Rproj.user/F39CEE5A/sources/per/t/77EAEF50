@@ -3,7 +3,7 @@
     "path": "~/NLP_lecture_PSLWeek/session2.Rmd",
     "project_path": "session2.Rmd",
     "type": "r_markdown",
-    "hash": "3565604404",
+    "hash": "1770303451",
     "contents": "",
     "dirty": false,
     "created": 1666711498582.0,
@@ -17,11 +17,11 @@
         "scrollLine": "133"
     },
     "folds": "",
-    "lastKnownWriteTime": 1666715915,
+    "lastKnownWriteTime": 1667482097,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1666715915881,
+    "last_content_update": 1667482097,
     "read_only": false,
     "read_only_alternatives": []
 }

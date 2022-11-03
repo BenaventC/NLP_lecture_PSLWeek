@@ -1,6 +1,0 @@
-"0","df<-readRDS(""./Data/UD.rds"")"
-"0",""
-"0","#library(cleanNLP) #an other technics for tf_idf"
-"0","tf <- UD%>%"
-"0","  filter(upos %in% c(""NOUN"", ""VERB"")) %>%"
-"0","  cnlp_utils_tfidf(min_df = 0.05, max_df = 0.95, tf_weight = ""raw"")"

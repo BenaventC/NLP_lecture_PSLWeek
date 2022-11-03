@@ -1,4 +1,0 @@
-"0","df$n_words<-str_count(df$description)"
-"0","ggplot(df,aes(x=n_words))+"
-"0","  geom_density()+"
-"0","  scale_x_log10()"

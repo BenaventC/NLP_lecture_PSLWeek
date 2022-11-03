@@ -1,2 +1,0 @@
-"0","df_work<-cbind(df,readability, lexdiv,emotions,test)"
-"0","write_rds(df_work,""./Data/df_work.rds"")"

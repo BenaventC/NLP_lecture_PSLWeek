@@ -12,6 +12,9 @@ bibliography: [PLSweek2022.bib]
 
 # Tools
 
+@blei_latent_2003
+
+
 ```{r setup, include=TRUE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, include=TRUE, message=FALSE, warning=FALSE)
 #from session 1
