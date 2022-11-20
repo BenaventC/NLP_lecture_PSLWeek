@@ -34,6 +34,8 @@ library(ggrepel)
 library(Rtsne)
 library(tidytext)
 
+# new for session 5
+
 theme_set(theme_minimal())
 
 t1=Sys.time()
@@ -42,16 +44,26 @@ t1=Sys.time()
 
 # The classification question
 
-## some theory
+## Some theory
 
 find a function y=f(x)+e where e is minimal.
 
 
+![Classification](./Images/sphx_glr_plot_classifier_comparison_001.png)
+
+To get an idea of diversity of Models : https://topepo.github.io/caret/models-clustered-by-tag-similarity.html
 
 
-## Annotation
+## What to classify
+
+ * predefined category : ie POS, grade, ...
+ * in most case : manual annotation. 
+
 
 ## a train-test approach
+
+
+
 
 ## modeling approach
 
@@ -61,14 +73,115 @@ A large number of specification and model families.
 
 
 
-## linear additive model
+# The case
 
-## decision tree models
+nnotation made by a group of student from Master Siren. 
 
-## 
+Justice.
 
 
-# Start with a naive bayes
+```{r 00, include=TRUE, message=FALSE, warning=FALSE}
+
+df <- read_csv("Data/Annotation_data_original.csv") %>%
+  rename(Injustice=6, Reparation =7, Colere=8, Vengeance=9) %>% 
+  filter(!is.na(Injustice)) %>%
+  mutate(Injustice=ifelse(Injustice==0, "Pas d'injustice", "Injustice"),
+         Colere=ifelse(Colere==0, "Sans émotion", "Colère"),
+         Reparation=ifelse(Reparation==0, "Inaction", "Recherche de réparation"),
+         Vengeance=ifelse(Vengeance==0, "Inaction", "Recherche de Vengeance")
+         )
+
+g1<-ggplot(df, aes(x=Injustice))+geom_bar()+coord_flip()
+g2<-ggplot(df, aes(x=Reparation))+geom_bar()+coord_flip()
+g3<-ggplot(df, aes(x=Colere))+geom_bar()+coord_flip()
+g4<-ggplot(df, aes(x=Vengeance))+geom_bar()+coord_flip()
+
+
+plot_grid(g1, g2, g3, g4, labels = c('A', 'B', 'C', 'D'), label_size = 12)
+
+
+library(ggsankey)
+sankey <- df %>%
+  make_long(Injustice, Colere, Reparation, Vengeance)
+
+ggplot(sankey, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = factor(node),
+               label = node)) +
+  geom_alluvial(flow.alpha = .6) +
+  geom_alluvial_text(size=2) + 
+theme_alluvial(base_size = 10)
+
+```
+
+Start with a naive bayes
+
+
+## splitting the data
+
+```{r 20}
+library(caret)
+library(tidytext)
+foo<- df%>%
+  mutate(text=paste(Titre, ". ", Description))%>%
+  select(ID, text, Injustice)
+
+glimpse(stopwords('fr', source="stopwords-iso"))
+# Crétaion d'une base de mots vides
+mots_vides <- tibble(mot = stopwords('fr', source="stopwords-iso"))%>%rename(word=mot)
+
+data_counts <- foo %>%
+  unnest_tokens(word, text, token = "ngrams", n =3 ) %>%
+  anti_join(mots_vides, by = "word") %>%
+  count(ID, word, sort = TRUE)
+
+words_10 <- data_counts %>%
+  group_by(word) %>%
+  summarise(n = n()) %>% 
+  filter(n >= 10) %>%
+  select(word)
+
+
+data_dtm <- data_counts %>%
+  right_join(words_10, by = "word") %>%
+  bind_tf_idf(word, ID, n) %>%
+  cast_dtm(ID, word, tf_idf)
+
+
+meta <- tibble(ID = as.numeric(dimnames(data_dtm)[[1]])) %>%
+  left_join(foo[!duplicated(foo$ID), ], by = "ID")
+
+trainIndex <- createDataPartition(meta$Injustice, p = 0.8, list = FALSE, times = 1)
+
+## The output is a set of integers for the rows of Sonar
+## that belong in the training set.
+data_df_train <- data_dtm[trainIndex, ] %>% as.matrix() %>% as.data.frame()
+data_df_test <- data_dtm[-trainIndex, ] %>% as.matrix() %>% as.data.frame()
+
+response_train <- meta$Injustice[trainIndex]
+
+trctrl <- trainControl(method = "none")
+
+svm_mod <- train(x = data_df_train,
+                 y = as.factor(response_train),
+                 method = "svmLinearWeights2",
+                 trControl = trctrl,
+                 tuneGrid = data.frame(cost = 1, 
+                                       Loss = 0, 
+                                       weight = 1))
+
+svm_pred <- predict(svm_mod,
+                    newdata = data_df_test)
+
+svm_cm <- confusionMatrix(svm_pred, as.factor(meta[-trainIndex, ]$Injustice))
+
+svm_cm
+
+
+```
+
 
 # Improve with  a RF strategy
 
@@ -81,6 +194,7 @@ A large number of specification and model families.
 Beware to computing time! Best to sample for testing. (come back to the beginning)
 
 ```{r 20}
+
 t2=Sys.time()
 t<- t2-t1
 print(t)

@@ -39,7 +39,8 @@ library(tidytext)
 library(word2vec)
 library(ape)
 
-theme_set(theme_minimal()+theme(plot.title = element_text(size=12)))
+theme_set(theme_minimal()+
+            theme(plot.title = element_text(size=12)))
 
 t1=Sys.time()
 
